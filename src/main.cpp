@@ -15,6 +15,10 @@ int main() {
                     return 1;
                 }
             }
+            if (not inst->get_chip_area().contains(rect_a)) {
+                std::cerr << "Rectangle outside chip area???\n";
+                return 1;
+            }
         }
         for (auto const& placed_rect : *solution) {
             std::cout << placed_rect.x_min << ' ' << placed_rect.y_min << '\n';

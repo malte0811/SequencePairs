@@ -4,6 +4,25 @@
 #include <algorithm>
 #include <istream>
 
+std::uint32_t PlacedRectangle::x_max() const {
+    return x_min + width;
+}
+
+std::uint32_t PlacedRectangle::y_max() const {
+    return y_min + height;
+}
+
+bool PlacedRectangle::intersects_open(PlacedRectangle const& other) const {
+    bool const intersect_x = x_min < other.x_max() and other.x_min < x_max();
+    bool const intersect_y = y_min < other.y_max() and other.y_min < y_max();
+    return intersect_x and intersect_y;
+}
+
+bool PlacedRectangle::contains(PlacedRectangle const& other) const {
+    return x_min <= other.x_min and y_min <= other.y_min and
+        other.x_max() <= x_max() and other.y_max() <= y_max();
+}
+
 Instance::Instance(Rectangle const& chip_area): _chip_area(chip_area) {}
 
 void Instance::add_circuit(Rectangle const& circuit) {
@@ -37,10 +56,10 @@ std::optional<std::vector<std::uint32_t>> Instance::compute_axis_coords(
     if (not result) {
         return std::nullopt;
     }
-    auto const max_it = std::max_element(result->begin(), result->end());
-    auto const max_id = std::distance(result->begin(), max_it);
-    if (*max_it + get_size(_to_place.at(max_id)) > get_size(_chip_area)) {
-        return std::nullopt;
+    for (std::size_t i = 0; i < result->size(); ++i) {
+        if (result->at(i) + get_size(_to_place.at(i)) > get_size(_chip_area)) {
+            return std::nullopt;
+        }
     }
     return result;
 }
@@ -99,4 +118,8 @@ std::optional<Instance> Instance::from_file(std::istream& input) {
         result.add_circuit(*new_circuit);
     }
     return result;
+}
+
+PlacedRectangle Instance::get_chip_area() const {
+    return {_chip_area, 0, 0};
 }

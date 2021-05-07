@@ -16,11 +16,13 @@ struct PlacedRectangle : public Rectangle {
     std::uint32_t x_min;
     std::uint32_t y_min;
 
-    bool intersects_open(PlacedRectangle const& other) const {
-        bool const intersect_x = x_min < other.x_min + other.width and other.x_min < x_min + width;
-        bool const intersect_y = y_min < other.y_min + other.height and other.y_min < y_min + height;
-        return intersect_x and intersect_y;
-    }
+    std::uint32_t x_max() const;
+
+    std::uint32_t y_max() const;
+
+    bool intersects_open(PlacedRectangle const& other) const;
+
+    bool contains(PlacedRectangle const& other) const;
 };
 
 using Solution = std::vector<PlacedRectangle>;
@@ -34,6 +36,8 @@ public:
     void add_circuit(Rectangle const& circuit);
 
     std::optional<Solution> place() const;
+
+    PlacedRectangle get_chip_area() const;
 private:
     template<bool y>
     std::optional<std::vector<std::uint32_t>> compute_axis_coords(

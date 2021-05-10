@@ -31,47 +31,35 @@ void Instance::add_circuit(Rectangle const& circuit) {
 
 template<bool y>
 std::optional<Digraph::CostVectorRef> Instance::compute_axis_coords(
-    Permutation const& pi, Permutation const& rho, Digraph& graph_instance
+    Permutation const& pi_inverse,
+    Permutation const& pi_inverse_then_rho,
+    Digraph& graph_instance
 ) const {
-    auto const get_size = [](Rectangle const& r) {
-        if constexpr (y) {
-            return r.height;
-        } else {
-            return r.width;
-        }
-    };
-    for (std::size_t i = 0; i < _to_place.size(); ++i) {
-        //TODO reduce useless iterations(?)
-        for (std::size_t j = 0; j < _to_place.size(); ++j) {
-            if (i == j) { continue; }
-            auto const south_west = pi.at(i) < pi.at(j);
-            auto const north_west = rho.at(i) < rho.at(j);
-            if (south_west and (north_west != y)) {
-                graph_instance.add_edge(i, j, get_size(_to_place.at(i)));
+    for (std::size_t pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
+        for (std::size_t pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
+            auto const north_west = pi_inverse_then_rho[pi_of_i] < pi_inverse_then_rho[pi_of_j];
+            if (north_west != y) {
+                graph_instance.add_edge(pi_inverse[pi_of_i], pi_inverse[pi_of_j]);
             }
         }
     }
-    auto result_opt = graph_instance.compute_longest_paths();
-    if (not result_opt) {
-        return std::nullopt;
-    }
-    Digraph::CostVector const& result = result_opt.value();
-    for (std::size_t i = 0; i < result.size(); ++i) {
-        if (result.at(i) + get_size(_to_place.at(i)) > get_size(_chip_area)) {
-            return std::nullopt;
-        }
-    }
-    return result_opt;
+    return graph_instance.compute_longest_paths(
+        pi_inverse, y ? _chip_area.height : _chip_area.width
+    );
 }
 
 std::optional<Solution> Instance::place() const {
     Digraph x_graph{_to_place.size()};
     Digraph y_graph{_to_place.size()};
-    for (auto const pi : Permutations{_to_place.size()}) {
-        for (auto const rho : Permutations{_to_place.size()}) {
-            auto const x_coords = compute_axis_coords<false>(pi, rho, x_graph);
+    for (std::size_t i = 0; i < _to_place.size(); ++i) {
+        x_graph.set_outgoing_edge_cost(i, _to_place.at(i).width);
+        y_graph.set_outgoing_edge_cost(i, _to_place.at(i).height);
+    }
+    for (auto const pi_inverse : Permutations{_to_place.size()}) {
+        for (auto const pi_inverse_then_rho : Permutations{_to_place.size()}) {
+            auto const x_coords = compute_axis_coords<false>(pi_inverse, pi_inverse_then_rho, x_graph);
             if (x_coords) {
-                auto const y_coords = compute_axis_coords<true>(pi, rho, y_graph);
+                auto const y_coords = compute_axis_coords<true>(pi_inverse, pi_inverse_then_rho, y_graph);
                 if (y_coords) {
                     return make_solution(*x_coords, *y_coords);
                 }
@@ -82,6 +70,7 @@ std::optional<Solution> Instance::place() const {
     }
     return std::nullopt;
 }
+
 Solution Instance::make_solution(
         std::vector<std::uint32_t> const& x_coords,
         std::vector<std::uint32_t> const& y_coords

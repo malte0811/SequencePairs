@@ -7,7 +7,6 @@
 #include <optional>
 #include "FixedMaxVector.h"
 
-// TODO rewrite to make inner loop 100% allocation-free
 class Digraph {
 public:
     using NodeId = std::size_t;
@@ -17,25 +16,24 @@ public:
 
     Digraph(NodeId num_nodes);
 
-    void add_edge(NodeId from, NodeId to, Cost edge_cost);
+    void add_edge(NodeId from, NodeId to);
+
+    void set_outgoing_edge_cost(NodeId from, Cost cost);
 
     void reset();
 
-    std::optional<CostVectorRef> compute_longest_paths() const;
+    std::optional<CostVectorRef> compute_longest_paths(
+        std::vector<NodeId> const& topological_order, Cost const stop_if_strictly_longer
+    ) const;
 private:
     using EdgeId = std::uint32_t;
-    struct HalfEdge {
-        NodeId other_end;
-        Cost edge_cost;
-    };
     struct Node {
-        FixedMaxVector<HalfEdge> incoming_edges;
-        FixedMaxVector<HalfEdge> outgoing_edges;
+        std::size_t num_incoming_edges;
+        Cost outgoing_edge_cost;
+        FixedMaxVector<NodeId> outgoing_edges;
     };
     struct PreallocatedStructures {
         CostVector longest_paths;
-        std::vector<EdgeId> num_unprocessed_predecessors;
-        FixedMaxVector<NodeId> all_predecessors_done;
     };
 
     std::vector<Node> _nodes;

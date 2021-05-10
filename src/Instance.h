@@ -42,7 +42,9 @@ public:
 private:
     template<bool y>
     std::optional<Digraph::CostVectorRef> compute_axis_coords(
-            Permutation const& pi, Permutation const& rho, Digraph& graph_instance
+        Permutation const& pi_inverse,
+        Permutation const& pi_inverse_then_rho,
+        Digraph& graph_instance
     ) const;
 
     Solution make_solution(

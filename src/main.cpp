@@ -1,8 +1,14 @@
 #include "Instance.h"
 #include <iostream>
+#include <fstream>
 
-int main() {
-    auto const inst = Instance::from_file(std::cin);
+int main(int argc, char const** argv) {
+    if (argc != 2) {
+        std::cerr << "Expected exactly one argument\n";
+        return 1;
+    }
+    std::ifstream in(argv[1]);
+    auto const inst = Instance::from_file(in);
     if (not inst) {
         return 1;
     }

@@ -30,8 +30,8 @@ void Instance::add_circuit(Rectangle const& circuit) {
 }
 
 template<bool y>
-std::optional<std::vector<std::uint32_t>> Instance::compute_axis_coords(
-        Permutation const& pi, Permutation const& rho
+std::optional<Digraph::CostVectorRef> Instance::compute_axis_coords(
+    Permutation const& pi, Permutation const& rho, Digraph& graph_instance
 ) const {
     auto const get_size = [](Rectangle const& r) {
         if constexpr (y) {
@@ -40,7 +40,6 @@ std::optional<std::vector<std::uint32_t>> Instance::compute_axis_coords(
             return r.width;
         }
     };
-    Digraph graph{_to_place.size()};
     for (std::size_t i = 0; i < _to_place.size(); ++i) {
         //TODO reduce useless iterations(?)
         for (std::size_t j = 0; j < _to_place.size(); ++j) {
@@ -48,32 +47,37 @@ std::optional<std::vector<std::uint32_t>> Instance::compute_axis_coords(
             auto const south_west = pi.at(i) < pi.at(j);
             auto const north_west = rho.at(i) < rho.at(j);
             if (south_west and (north_west != y)) {
-                graph.add_edge(i, j, get_size(_to_place.at(i)));
+                graph_instance.add_edge(i, j, get_size(_to_place.at(i)));
             }
         }
     }
-    auto result = graph.compute_longest_paths();
-    if (not result) {
+    auto result_opt = graph_instance.compute_longest_paths();
+    if (not result_opt) {
         return std::nullopt;
     }
-    for (std::size_t i = 0; i < result->size(); ++i) {
-        if (result->at(i) + get_size(_to_place.at(i)) > get_size(_chip_area)) {
+    Digraph::CostVector const& result = result_opt.value();
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        if (result.at(i) + get_size(_to_place.at(i)) > get_size(_chip_area)) {
             return std::nullopt;
         }
     }
-    return result;
+    return result_opt;
 }
 
 std::optional<Solution> Instance::place() const {
+    Digraph x_graph{_to_place.size()};
+    Digraph y_graph{_to_place.size()};
     for (auto const pi : Permutations{_to_place.size()}) {
         for (auto const rho : Permutations{_to_place.size()}) {
-            auto const x_coords = compute_axis_coords<false>(pi, rho);
+            auto const x_coords = compute_axis_coords<false>(pi, rho, x_graph);
             if (x_coords) {
-                auto const y_coords = compute_axis_coords<true>(pi, rho);
+                auto const y_coords = compute_axis_coords<true>(pi, rho, y_graph);
                 if (y_coords) {
                     return make_solution(*x_coords, *y_coords);
                 }
             }
+            x_graph.reset();
+            y_graph.reset();
         }
     }
     return std::nullopt;

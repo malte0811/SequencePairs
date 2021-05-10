@@ -6,6 +6,7 @@
 #include <optional>
 #include <iosfwd>
 #include "Permutation.h"
+#include "Digraph.h"
 
 struct Rectangle {
     std::uint32_t width;
@@ -40,8 +41,8 @@ public:
     PlacedRectangle get_chip_area() const;
 private:
     template<bool y>
-    std::optional<std::vector<std::uint32_t>> compute_axis_coords(
-            Permutation const& pi, Permutation const& rho
+    std::optional<Digraph::CostVectorRef> compute_axis_coords(
+            Permutation const& pi, Permutation const& rho, Digraph& graph_instance
     ) const;
 
     Solution make_solution(

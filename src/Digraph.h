@@ -2,19 +2,26 @@
 #define DIGRAPH_H
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 #include <optional>
+#include "FixedMaxVector.h"
 
 // TODO rewrite to make inner loop 100% allocation-free
 class Digraph {
 public:
     using NodeId = std::size_t;
     using Cost = std::uint32_t;
+    using CostVector = std::vector<Cost>;
+    using CostVectorRef = std::reference_wrapper<CostVector const>;
 
     Digraph(NodeId num_nodes);
+
     void add_edge(NodeId from, NodeId to, Cost edge_cost);
 
-    std::optional<std::vector<Cost>> compute_longest_paths() const;
+    void reset();
+
+    std::optional<CostVectorRef> compute_longest_paths() const;
 private:
     using EdgeId = std::uint32_t;
     struct HalfEdge {
@@ -22,11 +29,17 @@ private:
         Cost edge_cost;
     };
     struct Node {
-        std::vector<HalfEdge> incoming_edges;
-        std::vector<HalfEdge> outgoing_edges;
+        FixedMaxVector<HalfEdge> incoming_edges;
+        FixedMaxVector<HalfEdge> outgoing_edges;
+    };
+    struct PreallocatedStructures {
+        CostVector longest_paths;
+        std::vector<EdgeId> num_unprocessed_predecessors;
+        FixedMaxVector<NodeId> all_predecessors_done;
     };
 
     std::vector<Node> _nodes;
+    PreallocatedStructures mutable _prealloc;
 };
 
 #endif

@@ -13,7 +13,9 @@ struct Rectangle {
     std::uint32_t height;
 };
 
-struct PlacedRectangle : public Rectangle {
+struct PlacedRectangle {
+    std::uint32_t width;
+    std::uint32_t height;
     std::uint32_t x_min;
     std::uint32_t y_min;
 
@@ -40,25 +42,15 @@ public:
 
     PlacedRectangle get_chip_area() const;
 private:
-    struct TempEdge {
-        std::size_t pi_of_i;
-        std::size_t pi_of_j;
-    };
 
-    std::pair<std::vector<TempEdge>, std::vector<TempEdge>>  compute_temp_edges(
-        Permutation const& pi_inverse_then_rho
-    ) const;
-
-    std::optional<Digraph::CostVectorRef> compute_axis_coords(
-        Permutation const& pi_inverse,
-        std::vector<TempEdge> const& edges,
-        Digraph& graph_instance,
-        bool is_y
+    std::pair<Digraph, Digraph> compute_graphs_with_pi_indices(
+        Permutation const& rho_of_pi_inverse
     ) const;
 
     Solution make_solution(
-            std::vector<std::uint32_t> const& x_coords,
-            std::vector<std::uint32_t> const& y_coords
+        Permutation const& pi,
+        std::vector<std::uint32_t> const& x_coords_by_pi,
+        std::vector<std::uint32_t> const& y_coords_by_pi
     ) const;
 
     std::vector<Rectangle> _to_place;

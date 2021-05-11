@@ -10,7 +10,6 @@ add_executable(SequencePairs
     src/Permutation.cpp src/Permutation.h
     src/Digraph.cpp src/Digraph.h
     src/Instance.cpp src/Instance.h
-    src/FixedMaxVector.h
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

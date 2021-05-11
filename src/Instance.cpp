@@ -29,69 +29,59 @@ void Instance::add_circuit(Rectangle const& circuit) {
     _to_place.push_back(circuit);
 }
 
-std::optional<Digraph::CostVectorRef> Instance::compute_axis_coords(
-    Permutation const& pi_inverse,
-    std::vector<TempEdge> const& edges,
-    Digraph& graph_instance,
-    bool is_y
+std::pair<Digraph, Digraph> Instance::compute_graphs_with_pi_indices(
+    Permutation const& rho_of_pi_inverse
 ) const {
-    for (auto const&[pi_of_i, pi_of_j] : edges) {
-        graph_instance.add_edge(pi_inverse[pi_of_i], pi_inverse[pi_of_j]);
-    }
-    return graph_instance.compute_longest_paths(
-        pi_inverse, is_y ? _chip_area.height : _chip_area.width
-    );
-}
-
-auto Instance::compute_temp_edges(
-    Permutation const& pi_inverse_then_rho
-) const -> std::pair<std::vector<TempEdge>, std::vector<TempEdge>> {
-    std::vector<TempEdge> x_edges;
-    std::vector<TempEdge> y_edges;
+    Digraph x_graph(_to_place.size());
+    Digraph y_graph(_to_place.size());
     for (std::size_t pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
         for (std::size_t pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
-            auto const north_west = pi_inverse_then_rho[pi_of_i] < pi_inverse_then_rho[pi_of_j];
+            auto const north_west = rho_of_pi_inverse[pi_of_i] < rho_of_pi_inverse[pi_of_j];
             if (north_west) {
-                x_edges.push_back({pi_of_i, pi_of_j});
+                x_graph.add_edge(pi_of_i, pi_of_j);
             } else {
-                y_edges.push_back({pi_of_i, pi_of_j});
+                y_graph.add_edge(pi_of_i, pi_of_j);
             }
         }
     }
-    return {x_edges, y_edges};
+    return {std::move(x_graph), std::move(y_graph)};
 }
 
 std::optional<Solution> Instance::place() const {
-    Digraph x_graph{_to_place.size()};
-    Digraph y_graph{_to_place.size()};
-    for (std::size_t i = 0; i < _to_place.size(); ++i) {
-        x_graph.set_outgoing_edge_cost(i, _to_place.at(i).width);
-        y_graph.set_outgoing_edge_cost(i, _to_place.at(i).height);
-    }
-    for (auto const& pi_inverse_then_rho : Permutations{_to_place.size()}) {
-        auto const [x_edges, y_edges] = compute_temp_edges(pi_inverse_then_rho);
-        for (auto const& pi_inverse : Permutations{_to_place.size()}) {
-            auto const x_coords = compute_axis_coords(pi_inverse, x_edges, x_graph, false);
-            if (x_coords) {
-                auto const y_coords = compute_axis_coords(pi_inverse, y_edges, y_graph, true);
-                if (y_coords) {
-                    //return make_solution(*x_coords, *y_coords);
-                }
+    for (auto const& rho_of_pi_inverse : Permutations{_to_place.size()}) {
+        // Graph vertex IDs correspond to pi(circuit_id)
+        auto [x_graph, y_graph] = compute_graphs_with_pi_indices(rho_of_pi_inverse);
+        for (auto const& pi : Permutations{_to_place.size()}) {
+            for (std::size_t i = 0; i < _to_place.size(); ++i) {
+                x_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).width);
+                y_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).height);
             }
-            x_graph.reset();
-            y_graph.reset();
+            auto const x_coords = x_graph.compute_longest_paths(get_chip_area().width);
+            if (not x_coords) {
+                continue;
+            }
+            auto const y_coords = y_graph.compute_longest_paths(get_chip_area().height);
+            if (y_coords) {
+                return make_solution(pi, *x_coords, *y_coords);
+            }
         }
     }
     return std::nullopt;
 }
 
 Solution Instance::make_solution(
-        std::vector<std::uint32_t> const& x_coords,
-        std::vector<std::uint32_t> const& y_coords
+    Permutation const& pi,
+    std::vector<std::uint32_t> const& x_coords_by_pi,
+    std::vector<std::uint32_t> const& y_coords_by_pi
 ) const {
     Solution result;
     for (std::size_t i = 0; i < _to_place.size(); ++i) {
-        result.push_back({_to_place.at(i), x_coords.at(i), y_coords.at(i)});
+        result.push_back({
+            .width = _to_place.at(i).width,
+            .height = _to_place.at(i).height,
+            .x_min = x_coords_by_pi.at(pi.at(i)),
+            .y_min = y_coords_by_pi.at(pi.at(i))
+        });
     }
     return result;
 }
@@ -128,5 +118,10 @@ std::optional<Instance> Instance::from_file(std::istream& input) {
 }
 
 PlacedRectangle Instance::get_chip_area() const {
-    return {_chip_area, 0, 0};
+    return {
+        .width = _chip_area.width,
+        .height = _chip_area.height,
+        .x_min = 0,
+        .y_min = 0
+    };
 }

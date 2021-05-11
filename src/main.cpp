@@ -18,13 +18,11 @@ int main(int argc, char const** argv) {
         for (auto const& rect_a : *solution) {
             for (auto const& rect_b : *solution) {
                 if (&rect_a != &rect_b and rect_a.intersects_open(rect_b)) {
-                    std::cerr << "Intersecting rectangles in output???\n";
-                    return 1;
+                    std::cerr << "Intersecting rectangles in output!\n";
                 }
             }
             if (not inst->get_chip_area().contains(rect_a)) {
-                std::cerr << "Rectangle outside chip area???\n";
-                return 1;
+                std::cerr << "Rectangle outside chip area!\n";
             }
         }
         for (auto const& placed_rect : *solution) {

@@ -5,7 +5,6 @@
 #include <functional>
 #include <vector>
 #include <optional>
-#include "FixedMaxVector.h"
 
 class Digraph {
 public:
@@ -20,17 +19,13 @@ public:
 
     void set_outgoing_edge_cost(NodeId from, Cost cost);
 
-    void reset();
-
-    std::optional<CostVectorRef> compute_longest_paths(
-        std::vector<NodeId> const& topological_order, Cost stop_if_strictly_longer
-    ) const;
+    std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer) const;
 private:
     using EdgeId = std::uint32_t;
     struct Node {
         std::size_t num_incoming_edges;
         Cost outgoing_edge_cost;
-        FixedMaxVector<NodeId> outgoing_edges;
+        std::vector<NodeId> outgoing_edges;
     };
     struct PreallocatedStructures {
         CostVector longest_paths;

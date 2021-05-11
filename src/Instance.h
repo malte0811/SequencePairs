@@ -14,10 +14,10 @@ struct Rectangle {
 };
 
 struct PlacedRectangle {
-    std::uint32_t width;
-    std::uint32_t height;
     std::uint32_t x_min;
     std::uint32_t y_min;
+    std::uint32_t width;
+    std::uint32_t height;
 
     std::uint32_t x_max() const;
 
@@ -42,7 +42,6 @@ public:
 
     PlacedRectangle get_chip_area() const;
 private:
-
     std::pair<Digraph, Digraph> compute_graphs_with_pi_indices(
         Permutation const& rho_of_pi_inverse
     ) const;

@@ -29,6 +29,13 @@ void Instance::add_circuit(Rectangle const& circuit) {
     _to_place.push_back(circuit);
 }
 
+/**
+ * Computes the pair of x- and y-graphs occuring in the longest path problems resulting from the
+ * given \rho(\pi^{-1}), where graph vertices are indexed by \pi(v) rather than v itself. This has
+ * two advantages: The natural order of the vertex indices forms a topological order, and the graph
+ * structure only depends on the permutation from the "outer" loop, so we only need to set edge
+ * weights in the inner loop (and compute shortest paths).
+ */
 std::pair<Digraph, Digraph> Instance::compute_graphs_with_pi_indices(
     Permutation const& rho_of_pi_inverse
 ) const {
@@ -36,6 +43,7 @@ std::pair<Digraph, Digraph> Instance::compute_graphs_with_pi_indices(
     Digraph y_graph(_to_place.size());
     for (std::size_t pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
         for (std::size_t pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
+            // pi(i) is already smaller than pi(j), so only need to compare rho(i)/rho(j)
             auto const north_west = rho_of_pi_inverse[pi_of_i] < rho_of_pi_inverse[pi_of_j];
             if (north_west) {
                 x_graph.add_edge(pi_of_i, pi_of_j);
@@ -52,16 +60,21 @@ std::optional<Solution> Instance::place() const {
         // Graph vertex IDs correspond to pi(circuit_id)
         auto [x_graph, y_graph] = compute_graphs_with_pi_indices(rho_of_pi_inverse);
         for (auto const& pi : Permutations{_to_place.size()}) {
+            // Set correct edge weights
             for (std::size_t i = 0; i < _to_place.size(); ++i) {
                 x_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).width);
                 y_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).height);
             }
+            // Compute circuit positions
             auto const x_coords = x_graph.compute_longest_paths(get_chip_area().width);
             if (not x_coords) {
                 continue;
             }
             auto const y_coords = y_graph.compute_longest_paths(get_chip_area().height);
             if (y_coords) {
+                // If feasibile coordinates exist for both x and y, return the resulting (feasible)
+                // solution. The coordinate vectors are indexed by vertex IDs, so by pi(circuit_id),
+                // so we need to account for that
                 return make_solution(pi, *x_coords, *y_coords);
             }
         }
@@ -77,10 +90,10 @@ Solution Instance::make_solution(
     Solution result;
     for (std::size_t i = 0; i < _to_place.size(); ++i) {
         result.push_back({
+            .x_min = x_coords_by_pi.at(pi.at(i)),
+            .y_min = y_coords_by_pi.at(pi.at(i)),
             .width = _to_place.at(i).width,
             .height = _to_place.at(i).height,
-            .x_min = x_coords_by_pi.at(pi.at(i)),
-            .y_min = y_coords_by_pi.at(pi.at(i))
         });
     }
     return result;
@@ -119,9 +132,9 @@ std::optional<Instance> Instance::from_file(std::istream& input) {
 
 PlacedRectangle Instance::get_chip_area() const {
     return {
+        .x_min = 0,
+        .y_min = 0,
         .width = _chip_area.width,
         .height = _chip_area.height,
-        .x_min = 0,
-        .y_min = 0
     };
 }

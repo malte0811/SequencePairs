@@ -8,6 +8,7 @@ class PermutationIterator;
 
 using Permutation = std::vector<std::size_t>;
 
+/// Helper to cleanly iterate over all permutations of {0, …, k}.
 class Permutations {
 public:
     struct EndIterator{};

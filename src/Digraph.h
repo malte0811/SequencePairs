@@ -7,6 +7,11 @@
 #include <optional>
 #include <cassert>
 
+/**
+ * Represents a heavily restricted weighted directed graph. Restrictions:
+ *  - The graph must be acyclic, and the "natural" node order has to be a topological order
+ *  - All outgoing edges of a vertex have the same cost
+ */
 class Digraph {
 public:
     using NodeId = std::size_t;
@@ -20,7 +25,13 @@ public:
 
     void set_outgoing_edge_cost(NodeId from, Cost cost);
 
-    std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer);
+    /**
+     * Computes longest paths in the graph obtained by adding a source node with outgoing cost 
+     * 0 and edges to all other nodes and a sink node with edges from all other nodes. If any
+     * path (in particular any path to the virtual sink node) is strictly larger than the
+     * parameter an empty optional is returned.
+     */
+    std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer) const;
 private:
     using EdgeId = std::uint32_t;
     struct Node {
@@ -29,7 +40,8 @@ private:
     };
 
     std::vector<Node> _nodes;
-    CostVector _longest_paths;
+    // Preallocated to avoid allocations in the inner loop
+    CostVector mutable _longest_paths;
 };
 
 // INLINE SECTION

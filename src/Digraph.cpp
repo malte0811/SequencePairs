@@ -6,7 +6,9 @@ Digraph::Digraph(NodeId num_nodes):
     _longest_paths(CostVector(num_nodes))
 {}
 
-auto Digraph::compute_longest_paths( Cost const stop_if_strictly_longer) -> std::optional<CostVectorRef> {
+auto Digraph::compute_longest_paths(
+        Cost const stop_if_strictly_longer
+) const -> std::optional<CostVectorRef> {
     // Distance to node 0 is always 0, so start computing at 1
     for (NodeId i = 1; i < _nodes.size(); ++i) {
         auto const& node = _nodes.at(i);
@@ -17,6 +19,7 @@ auto Digraph::compute_longest_paths( Cost const stop_if_strictly_longer) -> std:
                 distance = cost_via_start;
             }
         }
+        // Length of path to the virtual sink node via i
         if (distance + node.outgoing_edge_cost > stop_if_strictly_longer) {
             return std::nullopt;
         }

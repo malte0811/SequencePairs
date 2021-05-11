@@ -15,6 +15,7 @@ int main(int argc, char const** argv) {
     }
     auto const solution = inst->place();
     if (solution) {
+        // Verify that the solution is actually feasible, and warn if it is not
         for (auto const& rect_a : *solution) {
             for (auto const& rect_b : *solution) {
                 if (&rect_a != &rect_b and rect_a.intersects_open(rect_b)) {
@@ -25,6 +26,7 @@ int main(int argc, char const** argv) {
                 std::cerr << "Rectangle outside chip area!\n";
             }
         }
+        // Actual output code
         for (auto const& placed_rect : *solution) {
             std::cout << placed_rect.x_min << ' ' << placed_rect.y_min << '\n';
         }

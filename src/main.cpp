@@ -9,6 +9,7 @@ int main(int argc, char const** argv) {
     }
     std::ifstream in(argv[1]);
     auto const inst = Instance::from_file(in);
+    in.close();
     if (not inst) {
         return 1;
     }

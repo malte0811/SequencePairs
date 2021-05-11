@@ -29,23 +29,36 @@ void Instance::add_circuit(Rectangle const& circuit) {
     _to_place.push_back(circuit);
 }
 
-template<bool y>
 std::optional<Digraph::CostVectorRef> Instance::compute_axis_coords(
     Permutation const& pi_inverse,
-    Permutation const& pi_inverse_then_rho,
-    Digraph& graph_instance
+    std::vector<TempEdge> const& edges,
+    Digraph& graph_instance,
+    bool is_y
 ) const {
+    for (auto const&[pi_of_i, pi_of_j] : edges) {
+        graph_instance.add_edge(pi_inverse[pi_of_i], pi_inverse[pi_of_j]);
+    }
+    return graph_instance.compute_longest_paths(
+        pi_inverse, is_y ? _chip_area.height : _chip_area.width
+    );
+}
+
+auto Instance::compute_temp_edges(
+    Permutation const& pi_inverse_then_rho
+) const -> std::pair<std::vector<TempEdge>, std::vector<TempEdge>> {
+    std::vector<TempEdge> x_edges;
+    std::vector<TempEdge> y_edges;
     for (std::size_t pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
         for (std::size_t pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
             auto const north_west = pi_inverse_then_rho[pi_of_i] < pi_inverse_then_rho[pi_of_j];
-            if (north_west != y) {
-                graph_instance.add_edge(pi_inverse[pi_of_i], pi_inverse[pi_of_j]);
+            if (north_west) {
+                x_edges.push_back({pi_of_i, pi_of_j});
+            } else {
+                y_edges.push_back({pi_of_i, pi_of_j});
             }
         }
     }
-    return graph_instance.compute_longest_paths(
-        pi_inverse, y ? _chip_area.height : _chip_area.width
-    );
+    return {x_edges, y_edges};
 }
 
 std::optional<Solution> Instance::place() const {
@@ -55,13 +68,14 @@ std::optional<Solution> Instance::place() const {
         x_graph.set_outgoing_edge_cost(i, _to_place.at(i).width);
         y_graph.set_outgoing_edge_cost(i, _to_place.at(i).height);
     }
-    for (auto const pi_inverse : Permutations{_to_place.size()}) {
-        for (auto const pi_inverse_then_rho : Permutations{_to_place.size()}) {
-            auto const x_coords = compute_axis_coords<false>(pi_inverse, pi_inverse_then_rho, x_graph);
+    for (auto const& pi_inverse_then_rho : Permutations{_to_place.size()}) {
+        auto const [x_edges, y_edges] = compute_temp_edges(pi_inverse_then_rho);
+        for (auto const& pi_inverse : Permutations{_to_place.size()}) {
+            auto const x_coords = compute_axis_coords(pi_inverse, x_edges, x_graph, false);
             if (x_coords) {
-                auto const y_coords = compute_axis_coords<true>(pi_inverse, pi_inverse_then_rho, y_graph);
+                auto const y_coords = compute_axis_coords(pi_inverse, y_edges, y_graph, true);
                 if (y_coords) {
-                    return make_solution(*x_coords, *y_coords);
+                    //return make_solution(*x_coords, *y_coords);
                 }
             }
             x_graph.reset();

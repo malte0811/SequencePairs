@@ -40,11 +40,20 @@ public:
 
     PlacedRectangle get_chip_area() const;
 private:
-    template<bool y>
+    struct TempEdge {
+        std::size_t pi_of_i;
+        std::size_t pi_of_j;
+    };
+
+    std::pair<std::vector<TempEdge>, std::vector<TempEdge>>  compute_temp_edges(
+        Permutation const& pi_inverse_then_rho
+    ) const;
+
     std::optional<Digraph::CostVectorRef> compute_axis_coords(
         Permutation const& pi_inverse,
-        Permutation const& pi_inverse_then_rho,
-        Digraph& graph_instance
+        std::vector<TempEdge> const& edges,
+        Digraph& graph_instance,
+        bool is_y
     ) const;
 
     Solution make_solution(

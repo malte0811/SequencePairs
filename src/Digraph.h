@@ -23,7 +23,7 @@ public:
     void reset();
 
     std::optional<CostVectorRef> compute_longest_paths(
-        std::vector<NodeId> const& topological_order, Cost const stop_if_strictly_longer
+        std::vector<NodeId> const& topological_order, Cost stop_if_strictly_longer
     ) const;
 private:
     using EdgeId = std::uint32_t;

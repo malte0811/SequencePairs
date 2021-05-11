@@ -37,4 +37,22 @@ private:
     bool _done = false;
 };
 
+// INLINE SECTION
+
+inline PermutationIterator Permutations::begin() const {
+    return PermutationIterator{_num_elements};
+}
+
+inline auto Permutations::end() const -> EndIterator {
+    return EndIterator{};
+}
+
+inline bool PermutationIterator::operator!=(Permutations::EndIterator) {
+    return not _done;
+}
+
+inline Permutation const& PermutationIterator::operator*() const {
+    return _last_order;
+}
+
 #endif

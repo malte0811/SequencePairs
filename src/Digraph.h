@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <optional>
+#include <cassert>
 
 class Digraph {
 public:
@@ -19,20 +20,27 @@ public:
 
     void set_outgoing_edge_cost(NodeId from, Cost cost);
 
-    std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer) const;
+    std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer);
 private:
     using EdgeId = std::uint32_t;
     struct Node {
-        std::size_t num_incoming_edges;
         Cost outgoing_edge_cost;
-        std::vector<NodeId> outgoing_edges;
-    };
-    struct PreallocatedStructures {
-        CostVector longest_paths;
+        std::vector<NodeId> incoming_edges;
     };
 
     std::vector<Node> _nodes;
-    PreallocatedStructures mutable _prealloc;
+    CostVector _longest_paths;
 };
+
+// INLINE SECTION
+
+inline void Digraph::add_edge(NodeId const start, NodeId const end) {
+    assert(start < end);
+    _nodes.at(end).incoming_edges.push_back(start);
+}
+
+inline void Digraph::set_outgoing_edge_cost(NodeId const start, Cost const cost) {
+    _nodes[start].outgoing_edge_cost = cost;
+}
 
 #endif

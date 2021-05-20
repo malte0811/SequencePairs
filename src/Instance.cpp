@@ -4,11 +4,11 @@
 #include <algorithm>
 #include <istream>
 
-std::uint32_t PlacedRectangle::x_max() const {
+Rectangle::Coord PlacedRectangle::x_max() const {
     return x_min + width;
 }
 
-std::uint32_t PlacedRectangle::y_max() const {
+Rectangle::Coord PlacedRectangle::y_max() const {
     return y_min + height;
 }
 
@@ -41,8 +41,8 @@ std::pair<Digraph, Digraph> Instance::compute_graphs_with_pi_indices(
 ) const {
     Digraph x_graph(_to_place.size());
     Digraph y_graph(_to_place.size());
-    for (std::size_t pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
-        for (std::size_t pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
+    for (Digraph::NodeId pi_of_i = 0; pi_of_i < _to_place.size(); ++pi_of_i) {
+        for (Digraph::NodeId pi_of_j = pi_of_i + 1; pi_of_j < _to_place.size(); ++pi_of_j) {
             // pi(i) is already smaller than pi(j), so only need to compare rho(i)/rho(j)
             auto const north_west = rho_of_pi_inverse[pi_of_i] < rho_of_pi_inverse[pi_of_j];
             if (north_west) {
@@ -79,7 +79,7 @@ std::optional<Solution> Instance::place() const {
         }
         for (auto const& pi : Permutations{_to_place.size()}) {
             // Set correct edge weights
-            for (std::size_t i = 0; i < _to_place.size(); ++i) {
+            for (Digraph::NodeId i = 0; i < _to_place.size(); ++i) {
                 x_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).width);
                 y_graph.set_outgoing_edge_cost(pi.at(i), _to_place.at(i).height);
             }
@@ -102,8 +102,8 @@ std::optional<Solution> Instance::place() const {
 
 Solution Instance::make_solution(
     Permutation const& pi,
-    std::vector<std::uint32_t> const& x_coords_by_pi,
-    std::vector<std::uint32_t> const& y_coords_by_pi
+    std::vector<Coord> const& x_coords_by_pi,
+    std::vector<Coord> const& y_coords_by_pi
 ) const {
     Solution result;
     for (std::size_t i = 0; i < _to_place.size(); ++i) {
@@ -117,27 +117,29 @@ Solution Instance::make_solution(
     return result;
 }
 
-std::size_t Instance::max_path_length(std::uint32_t Rectangle::* const axis_size) const {
-    std::vector<std::uint32_t> sizes;
-    sizes.reserve(_to_place.size());
+auto Instance::max_path_length(
+        Coord Rectangle::* const axis_size
+) const -> UnweightedCost {
+    std::vector<Coord> circuit_sizes;
+    circuit_sizes.reserve(_to_place.size());
     for (auto const& circuit : _to_place) {
-        sizes.push_back(circuit.*axis_size);
+        circuit_sizes.push_back(circuit.*axis_size);
     }
-    std::sort(sizes.begin(), sizes.end());
-    std::size_t path_length_up_to = 0;
-    for (std::size_t i = 0; i < sizes.size(); ++i) {
-        path_length_up_to += sizes.at(i);
+    std::sort(circuit_sizes.begin(), circuit_sizes.end());
+    Coord path_length_up_to = 0;
+    for (UnweightedCost i = 0; i < circuit_sizes.size(); ++i) {
+        path_length_up_to += circuit_sizes.at(i);
         if (path_length_up_to > _chip_area.*axis_size) {
             return i;
         }
     }
-    return sizes.size();
+    return circuit_sizes.size();
 }
 
 bool Instance::is_unweighted_path_ok(
-        Digraph& axis_graph, std::size_t max_axis_length
+        Digraph& axis_graph, UnweightedCost const max_axis_length
 ) const {
-    for (std::size_t i = 0; i < _to_place.size(); ++i) {
+    for (Digraph::NodeId i = 0; i < _to_place.size(); ++i) {
         axis_graph.set_outgoing_edge_cost(i, 1);
     }
     return axis_graph.compute_longest_paths(max_axis_length).has_value();

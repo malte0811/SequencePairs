@@ -56,6 +56,13 @@ std::pair<Digraph, Digraph> Instance::compute_graphs_with_pi_indices(
 }
 
 std::optional<Solution> Instance::place() const {
+    // If some circuit can't fit in the chip area by itself, we don't even need to try the
+    // main algorithm. In that case the contract of compute_longest_paths would also be violated.
+    for (auto const& circuit : _to_place) {
+        if (circuit.height > get_chip_area().height or circuit.width > get_chip_area().width) {
+            return std::nullopt;
+        }
+    }
     for (auto const& rho_of_pi_inverse : Permutations{_to_place.size()}) {
         // Graph vertex IDs correspond to pi(circuit_id)
         auto [x_graph, y_graph] = compute_graphs_with_pi_indices(rho_of_pi_inverse);

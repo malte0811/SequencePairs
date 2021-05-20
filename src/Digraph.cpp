@@ -10,6 +10,8 @@ auto Digraph::compute_longest_paths(
         Cost const stop_if_strictly_longer
 ) const -> std::optional<CostVectorRef> {
     // Distance to node 0 is always 0, so start computing at 1
+    // Since no single edge is longer than the longest allowed path we don't need to check
+    // the length of the path source->0->sink
     for (NodeId i = 1; i < _nodes.size(); ++i) {
         auto const& node = _nodes.at(i);
         Cost distance = 0;

@@ -30,6 +30,7 @@ public:
      * 0 and edges to all other nodes and a sink node with edges from all other nodes. If any
      * path (in particular any path to the virtual sink node) is strictly larger than the
      * parameter an empty optional is returned.
+     * No single edge may be strictly longer than the parameter.
      */
     std::optional<CostVectorRef> compute_longest_paths(Cost stop_if_strictly_longer) const;
 private:

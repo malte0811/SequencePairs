@@ -52,6 +52,18 @@ private:
         std::vector<std::uint32_t> const& y_coords_by_pi
     ) const;
 
+    /**
+     * Computes the longest unweighted length of a path in the x/y graph used in the
+     * sequence pairs algorithm. The weighted length of a path with k edges is at
+     * least the size of the k smallest circuits. If this already exceeds the size
+     * of our chip the graph for this axis cannot contain a path of length k.
+     */
+    std::size_t max_path_length(std::uint32_t Rectangle::* axis_size) const;
+
+    bool is_unweighted_path_ok(
+            Digraph& axis_graph, std::size_t max_axis_length
+    ) const;
+
     std::vector<Rectangle> _to_place;
     Rectangle _chip_area;
 };

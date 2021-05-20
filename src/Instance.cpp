@@ -63,9 +63,20 @@ std::optional<Solution> Instance::place() const {
             return std::nullopt;
         }
     }
+    // Maximum (unweighted) lengths of paths in the x/y graphs in a feasible solution
+    auto const max_x_path_length = max_path_length(&Rectangle::width);
+    auto const max_y_path_length = max_path_length(&Rectangle::height);
     for (auto const& rho_of_pi_inverse : Permutations{_to_place.size()}) {
         // Graph vertex IDs correspond to pi(circuit_id)
         auto [x_graph, y_graph] = compute_graphs_with_pi_indices(rho_of_pi_inverse);
+        // If either graph contains a "long" path this choice of rho_of_pi_inverse is infeasible
+        // for any choice of pi
+        if (not is_unweighted_path_ok(x_graph, max_x_path_length)) {
+            continue;
+        }
+        if (not is_unweighted_path_ok(y_graph, max_y_path_length)) {
+            continue;
+        }
         for (auto const& pi : Permutations{_to_place.size()}) {
             // Set correct edge weights
             for (std::size_t i = 0; i < _to_place.size(); ++i) {
@@ -104,6 +115,32 @@ Solution Instance::make_solution(
         });
     }
     return result;
+}
+
+std::size_t Instance::max_path_length(std::uint32_t Rectangle::* const axis_size) const {
+    std::vector<std::uint32_t> sizes;
+    sizes.reserve(_to_place.size());
+    for (auto const& circuit : _to_place) {
+        sizes.push_back(circuit.*axis_size);
+    }
+    std::sort(sizes.begin(), sizes.end());
+    std::size_t path_length_up_to = 0;
+    for (std::size_t i = 0; i < sizes.size(); ++i) {
+        path_length_up_to += sizes.at(i);
+        if (path_length_up_to > _chip_area.*axis_size) {
+            return i;
+        }
+    }
+    return sizes.size();
+}
+
+bool Instance::is_unweighted_path_ok(
+        Digraph& axis_graph, std::size_t max_axis_length
+) const {
+    for (std::size_t i = 0; i < _to_place.size(); ++i) {
+        axis_graph.set_outgoing_edge_cost(i, 1);
+    }
+    return axis_graph.compute_longest_paths(max_axis_length).has_value();
 }
 
 std::optional<Rectangle> read_rect(std::istream& input) {
